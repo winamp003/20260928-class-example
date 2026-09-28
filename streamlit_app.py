@@ -1,191 +1,248 @@
-import csv
-import io
-import json
+from pathlib import Path
 
 import streamlit as st
 
 
 st.set_page_config(
-    page_title="Streamlit Playground",
-    page_icon="🧪",
+    page_title="김요한 | 전기·신재생에너지 교육",
+    page_icon="⚡",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed",
 )
 
-accent_color = "#D45D3F"
-with st.sidebar:
-    st.markdown("### 🧪 STREAMLIT LAB")
-    st.caption("기본 기능을 직접 만져보는 인터랙티브 쇼케이스")
-    st.divider()
-    show_hints = st.toggle("설명 표시", value=True)
-    accent_color = st.color_picker("강조 색상", value=accent_color)
-    st.selectbox("실행 모드", ["둘러보기", "직접 조작"], index=1)
-    st.divider()
-    st.caption("사이드바도 앱의 일부예요. 입력값은 즉시 반영됩니다.")
-
 st.markdown(
-    f"""
+    """
     <style>
-    :root {{ --lab-accent: {accent_color}; }}
-    .block-container {{ padding-top: 2.2rem; padding-bottom: 3rem; }}
-    [data-testid="stSidebar"] {{ border-right: 1px solid rgba(128,128,128,.2); }}
-    h1 {{ letter-spacing: -0.035em; }}
-    .eyebrow {{ color: var(--lab-accent); font-size: .76rem; font-weight: 700;
-                letter-spacing: .12em; text-transform: uppercase; }}
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700;800&display=swap');
+    :root {
+        --ink: #191f28;
+        --muted: #788391;
+        --paper: #ffffff;
+        --accent: #3182f6;
+        --accent-soft: #f2f7ff;
+        --sun: #f2ce45;
+        --line: #e8edf3;
+    }
+    .stApp { background: var(--paper); color: var(--ink); font-family: 'DM Sans', 'Noto Sans KR', sans-serif; }
+    .block-container { max-width: 1080px; padding-top: 2rem; padding-bottom: 4rem; }
+    h1, h2, h3, p, label { font-family: 'DM Sans', 'Noto Sans KR', sans-serif; }
+    h1, h2, h3 { color: var(--ink); font-weight: 700; }
+    h1 { font-size: 4rem; line-height: 1.08; }
+    h2 { font-size: 1.7rem; }
+    h3 { font-size: 1.2rem; }
+    [data-testid="stHeader"] { background: rgba(255, 255, 255, .92); }
+    [data-testid="stSidebar"] { background: #f7f9fc; border-right: 1px solid var(--line); }
+    [data-testid="stMetric"] { background: var(--accent-soft); border: 1px solid #e6efff;
+                                border-radius: 8px; padding: 1rem 1.1rem; }
+    [data-testid="stMetricLabel"] { color: var(--muted); }
+    [data-testid="stMetricValue"] { color: var(--ink); font-size: 1.05rem; font-weight: 700;
+                                      line-height: 1.3; white-space: normal; overflow-wrap: anywhere; }
+    [data-testid="stMetricValue"] div { font-size: inherit; line-height: inherit;
+                                         white-space: normal; overflow-wrap: anywhere; }
+    [data-testid="stTabs"] [role="tab"] { color: var(--muted); font-weight: 600; }
+    [data-testid="stTabs"] [aria-selected="true"] { color: var(--accent); }
+    [data-testid="stTabs"] [data-baseweb="tab-highlight"] { background-color: var(--accent); }
+    [data-testid="stBaseButton-primary"] { background: var(--accent); border: 0; border-radius: 8px; }
+    [data-testid="stBaseButton-primary"]:hover { background: #1769e0; border: 0; }
+    [data-testid="stBaseButton-secondary"] { border: 1px solid var(--line); border-radius: 8px; }
+    [data-testid="stTextInput"] input:focus, [data-testid="stTextArea"] textarea:focus {
+        border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent);
+    }
+    [data-testid="stFileUploader"] section { background: #f7faff; border: 1px dashed #b9d2fb; border-radius: 8px; }
+    [data-testid="stRadio"] [role="radiogroup"] { flex-wrap: wrap; column-gap: .7rem; row-gap: .2rem; }
+    [data-testid="stRadio"] [role="radiogroup"] label p { font-size: .84rem; line-height: 1.35;
+                                                              white-space: normal; overflow-wrap: anywhere; }
+    .eyebrow { color: var(--accent); font: 700 .76rem 'DM Sans', sans-serif;
+               letter-spacing: .09em; text-transform: uppercase; }
+    .hero-title span { color: var(--sun); }
+    .hero-note { color: #596574; font-size: 1.05rem; line-height: 1.8; max-width: 38rem; }
+    .initials { align-items: center; background: var(--accent); border-radius: 8px;
+                color: #fff; display: flex; font: 700 5rem 'DM Sans', 'Noto Sans KR', sans-serif;
+                justify-content: center; min-height: 330px; }
+    [data-testid="stImage"] img { height: 330px; object-fit: cover; object-position: center 38%; border-radius: 8px; }
+    .section-kicker { color: var(--accent); font: 700 .74rem 'DM Sans', sans-serif;
+                      letter-spacing: .09em; text-transform: uppercase; }
+    .profile-card { background: #f7f9fc; border: 1px solid var(--line); border-left: 4px solid var(--sun);
+                    border-radius: 8px; margin: .45rem 0; padding: .9rem 1rem; }
+    div[data-testid="stForm"] { background: #f7f9fc; border: 1px solid var(--line);
+                                 border-radius: 8px; padding: 1.2rem; }
+    @media (max-width: 700px) {
+        .block-container { padding-top: 1rem; }
+        h1 { font-size: 3rem; }
+        .initials { min-height: 220px; }
+        [data-testid="stImage"] img { height: 260px; }
+    }
     </style>
     """,
     unsafe_allow_html=True,
 )
 
-st.markdown('<div class="eyebrow">작은 앱을 빠르게, 풍부하게</div>', unsafe_allow_html=True)
-st.title("Streamlit 기능 플레이그라운드")
-st.write("입력부터 데이터 편집, 시각화, 파일 처리까지 한 화면에서 시험해 보세요.")
+with st.sidebar:
+    st.markdown("### 김요한")
+    st.caption("전기 · 신재생에너지 · AI 융합교육")
+    st.divider()
+    st.markdown("서울공업고등학교")
+    st.markdown("신재생에너지과 부장")
+    st.markdown("숙명여자대학교 대학원 재학")
+    st.divider()
+    st.caption("프로필 사진은 아래 사진 영역에서 추가할 수 있습니다.")
 
-overview, widgets, data_lab, charts, files_lab = st.tabs(
-    ["⌂ 개요", "◉ 입력 요소", "▦ 데이터", "▥ 시각화", "⇧ 파일·상태"]
-)
+intro_column, portrait_column = st.columns([1.35, 1], gap="large", vertical_alignment="center")
+with intro_column:
+    st.markdown('<div class="eyebrow">TEACHER · ENERGY · LEARNING</div>', unsafe_allow_html=True)
+    st.markdown('<h1 class="hero-title">김요한<span>⚡</span></h1>', unsafe_allow_html=True)
+    st.markdown(
+        '<p class="hero-note">서울공업고등학교에서 전기 교과를 가르치며, '
+        '신재생에너지과를 이끌고 있습니다. AI 융합교육을 공부하며 '
+        '기술과 배움이 만나는 지점을 탐구합니다.</p>',
+        unsafe_allow_html=True,
+    )
+    st.markdown("**전기 교육**　/　**신재생에너지**　/　**AI 융합교육**")
 
-with overview:
-    st.subheader("앱의 현재 상태")
-    metric_one, metric_two, metric_three, metric_four = st.columns(4)
-    metric_one.metric("활성 세션", "1", "+1", help="현재 브라우저 세션 기준")
-    metric_two.metric("렌더링", "실시간", "정상")
-    metric_three.metric("구성 요소", "20+", "내장")
-    metric_four.metric("실행 환경", "Python", "Streamlit")
+with portrait_column:
+    portrait_path = Path(__file__).resolve().parent / "images1" / "123.jpg"
+    st.image(portrait_path, caption="김요한", width="stretch")
 
-    left, right = st.columns([1.35, 1], gap="large")
-    with left:
-        st.markdown("#### 한눈에 보는 사용량")
-        st.area_chart(
-            {"방문": [18, 24, 21, 32, 29, 43, 48], "가입": [4, 7, 6, 11, 9, 15, 19]},
-            height=270,
-        )
-    with right:
-        st.markdown("#### 상태 메시지")
-        st.success("데이터 연결이 정상입니다.")
-        st.info("위 탭을 이동해 기능을 직접 사용해 보세요.")
-        st.warning("파일 업로드는 이 브라우저 세션에서만 처리됩니다.")
-        if st.button("알림 띄우기", icon="🔔"):
-            st.toast("버튼 이벤트가 정상적으로 전달됐어요.", icon="✅")
-            st.balloons()
+st.divider()
+first_metric, second_metric, third_metric = st.columns(3)
+first_metric.metric("가르치는 교과", "전기")
+second_metric.metric("맡은 역할", "신재생에너지과 부장")
+third_metric.metric("배움", "AI융합교육 대학원")
 
-    with st.expander("이 페이지에 포함된 기능"):
+profile_tab, education_tab, contact_tab = st.tabs(["프로필", "교육과 관심", "연락하기"])
+
+with profile_tab:
+    st.markdown('<div class="section-kicker">ABOUT</div>', unsafe_allow_html=True)
+    st.header("기술을 가르치고, 배움을 새롭게 고민합니다")
+    teaching_column, study_column = st.columns(2, gap="large")
+    with teaching_column:
+        st.markdown("#### 학교에서")
+        st.write("서울공업고등학교에서 전기 교과를 가르치고 있습니다.")
+        st.markdown('<div class="profile-card"><b>현재 역할</b><br>신재생에너지과 부장</div>', unsafe_allow_html=True)
+    with study_column:
+        st.markdown("#### 대학원에서")
+        st.write("숙명여자대학교 대학원 AI융합교육과에 재학 중입니다.")
+        st.markdown('<div class="profile-card"><b>관심의 접점</b><br>전기·에너지 교육과 AI 융합교육</div>', unsafe_allow_html=True)
+    with st.expander("조금 더 소개합니다"):
         st.write(
-            "사이드바 설정, 메트릭, 입력 위젯, 폼 제출, 데이터 에디터, 차트, "
-            "파일 업로드와 다운로드, 진행 상태, 알림을 포함합니다."
+            "전기 교과와 신재생에너지 분야의 교육 경험을 바탕으로, "
+            "AI 융합교육을 공부하고 있습니다. 수업과 배움에 대한 이야기를 나누고 싶습니다."
         )
-
-with widgets:
-    st.subheader("입력 요소")
-    st.caption("값을 바꾸면 Streamlit이 앱을 다시 실행해 결과를 갱신합니다.")
-    first, second, third = st.columns(3)
-    with first:
-        name = st.text_input("이름", placeholder="예: 민지")
-        quantity = st.number_input("수량", min_value=1, max_value=100, value=3)
-        rating = st.slider("만족도", min_value=0, max_value=10, value=7)
-    with second:
-        category = st.selectbox("카테고리", ["디자인", "개발", "데이터", "기타"])
-        tags = st.multiselect("관심 태그", ["Python", "시각화", "자동화", "AI"])
-        priority = st.radio("우선순위", ["낮음", "보통", "높음"], horizontal=True)
-    with third:
-        due_date = st.date_input("날짜 선택")
-        reminder = st.time_input("시간 선택")
-        enabled = st.checkbox("알림 사용", value=True)
-        st.toggle("미리보기 모드", value=False)
-
-    if name:
-        st.write(
-            f"**{name}**님, {category} 항목 {quantity}개를 "
-            f"{due_date}까지 준비합니다. 우선순위: {priority}, 만족도: {rating}/10."
-        )
-        st.caption(f"태그: {', '.join(tags) if tags else '선택 없음'} · 알림 시간: {reminder} · 사용 여부: {enabled}")
 
     st.divider()
-    st.markdown("#### 폼으로 한 번에 제출")
-    with st.form("feedback_form", clear_on_submit=False):
-        feedback = st.text_area("의견", placeholder="개선 아이디어를 적어주세요.")
-        score = st.select_slider("추천 점수", options=[1, 2, 3, 4, 5], value=4)
-        submitted = st.form_submit_button("의견 제출", type="primary")
-    if submitted:
-        st.success(f"의견을 받았습니다. 추천 점수: {score}/5 · {feedback or '내용 없음'}")
-
-with data_lab:
-    st.subheader("표와 데이터 편집")
-    st.caption("셀을 수정하거나 행을 추가·삭제한 뒤 아래 표에서 결과를 확인하세요.")
-    sample_rows = [
-        {"업무": "화면 설계", "담당자": "서연", "진행률": 80, "완료": False},
-        {"업무": "API 연결", "담당자": "도윤", "진행률": 45, "완료": False},
-        {"업무": "사용자 테스트", "담당자": "하린", "진행률": 100, "완료": True},
+    st.markdown("#### 김요한 알아가기 퀴즈")
+    st.caption("다섯 문제를 모두 맞히면 특별한 축하 메시지가 나와요.")
+    quiz_questions = [
+        {
+            "question": "현재 근무하는 학교는 어디일까요?",
+            "options": ["서울공업고등학교", "숙명여자대학교", "서울과학고등학교", "경기공업고등학교"],
+            "answer": "서울공업고등학교",
+        },
+        {
+            "question": "가르치는 교과는 무엇일까요?",
+            "options": ["전기", "미술", "국어", "체육"],
+            "answer": "전기",
+        },
+        {
+            "question": "부장으로 맡고 있는 학과는 어디일까요?",
+            "options": ["신재생에너지과", "기계과", "건축과", "조리과"],
+            "answer": "신재생에너지과",
+        },
+        {
+            "question": "대학원에서 공부하는 전공은 무엇일까요?",
+            "options": ["AI융합교육", "경영학", "환경공학", "체육교육"],
+            "answer": "AI융합교육",
+        },
+        {
+            "question": "수업 밖에서 관심을 두고 있는 것은 무엇일까요?",
+            "options": ["운동", "등산", "요리", "사진"],
+            "answer": "운동",
+        },
     ]
-    edited_rows = st.data_editor(
-        sample_rows,
-        num_rows="dynamic",
-        hide_index=True,
-        width="stretch",
-        key="editable_tasks",
-    )
-    st.markdown("#### 편집 결과")
-    st.dataframe(edited_rows, hide_index=True, width="stretch")
-    st.json({"행 수": len(edited_rows), "완료한 업무": sum(row["완료"] for row in edited_rows)})
 
-with charts:
-    st.subheader("데이터 시각화")
-    period = st.select_slider("표시 기간", options=["1주", "2주", "1개월", "3개월"], value="1개월")
-    chart_left, chart_right = st.columns(2, gap="large")
-    with chart_left:
-        st.markdown("#### 주간 추이")
-        st.line_chart(
-            {"방문자": [120, 155, 138, 190, 215, 202, 248], "주문": [18, 21, 17, 32, 35, 30, 42]},
-            height=300,
+    with st.form("profile_quiz"):
+        selected_answers = [
+            st.radio(
+                f"{index}. {item['question']}",
+                item["options"],
+                key=f"profile_quiz_{index}",
+                horizontal=True,
+            )
+            for index, item in enumerate(quiz_questions, start=1)
+        ]
+        quiz_submitted = st.form_submit_button("정답 확인", type="primary")
+
+    if quiz_submitted:
+        correct_count = sum(
+            selected == item["answer"]
+            for selected, item in zip(selected_answers, quiz_questions)
         )
-    with chart_right:
-        st.markdown("#### 카테고리별 결과")
-        st.bar_chart({"완료 항목": [32, 25, 19, 14], "대기 항목": [8, 12, 6, 10]}, height=300)
-    st.caption(f"선택한 기간: {period} · 차트는 샘플 데이터로 표시됩니다.")
-
-with files_lab:
-    st.subheader("파일 업로드와 다운로드")
-    uploaded_files = st.file_uploader(
-        "CSV, JSON, 텍스트 또는 이미지를 선택하세요.",
-        type=["csv", "json", "txt", "png", "jpg", "jpeg"],
-        accept_multiple_files=True,
-    )
-    for uploaded_file in uploaded_files:
-        st.markdown(f"**{uploaded_file.name}** · {uploaded_file.size:,} bytes")
-        suffix = uploaded_file.name.rsplit(".", 1)[-1].lower()
-        if suffix == "csv":
-            text = uploaded_file.getvalue().decode("utf-8-sig")
-            rows = list(csv.DictReader(io.StringIO(text)))
-            st.dataframe(rows, width="stretch")
-        elif suffix == "json":
-            try:
-                st.json(json.loads(uploaded_file.getvalue()))
-            except (UnicodeDecodeError, json.JSONDecodeError):
-                st.error("올바른 JSON 파일이 아닙니다.")
-        elif suffix in {"png", "jpg", "jpeg"}:
-            st.image(uploaded_file, caption=uploaded_file.name, width="stretch")
+        st.progress(correct_count / len(quiz_questions), text=f"정답 {correct_count} / {len(quiz_questions)}")
+        if correct_count == len(quiz_questions):
+            st.success("축하드립니다. 김요한에 대해 많이 공부하셨군요!!")
+            st.balloons()
         else:
-            st.text(uploaded_file.getvalue().decode("utf-8", errors="replace"))
+            st.info(f"{len(quiz_questions)}문제 중 {correct_count}문제를 맞혔어요. 틀린 답을 확인해 보세요.")
+            for index, (selected, item) in enumerate(zip(selected_answers, quiz_questions), start=1):
+                if selected != item["answer"]:
+                    st.caption(f"{index}번 정답: {item['answer']}")
 
-    export_csv = "업무,진행률\n화면 설계,80\nAPI 연결,45\n사용자 테스트,100\n"
-    st.download_button(
-        "샘플 CSV 다운로드",
-        data=export_csv.encode("utf-8-sig"),
-        file_name="streamlit_sample.csv",
-        mime="text/csv",
-        icon="⬇️",
-    )
-
+with education_tab:
+    st.markdown('<div class="section-kicker">TEACHING & INTERESTS</div>', unsafe_allow_html=True)
+    st.header("관심을 두고 있는 분야")
+    interest_columns = st.columns(3, gap="medium")
+    with interest_columns[0]:
+        st.markdown("#### 01 / 전기")
+        st.write("서울공업고등학교 전기 교과")
+    with interest_columns[1]:
+        st.markdown("#### 02 / 에너지")
+        st.write("신재생에너지과 부장으로 교육 현장에 함께합니다.")
+    with interest_columns[2]:
+        st.markdown("#### 03 / AI 교육")
+        st.write("숙명여자대학교 대학원에서 AI융합교육을 공부합니다.")
     st.divider()
-    st.markdown("#### 진행 상태와 알림")
-    if st.button("작업 실행", type="primary", icon="▶️"):
-        with st.status("샘플 작업을 실행하고 있습니다.", expanded=True) as status:
-            progress = st.progress(0, text="준비 중")
-            for step, label in enumerate(["데이터 읽기", "변환", "완료"], start=1):
-                progress.progress(step / 3, text=label)
-            status.update(label="작업이 완료됐습니다.", state="complete", expanded=False)
-        st.toast("작업 완료", icon="✅")
+    st.markdown("#### 수업 밖의 관심")
+    st.write("운동을 좋아하고, 꾸준히 몸을 움직이는 데 관심이 많습니다.")
 
-if show_hints:
-    st.divider()
-    st.caption("더 알아보기: [Streamlit 문서](https://docs.streamlit.io/) · 위젯은 세션마다 독립적으로 동작합니다.")
+with contact_tab:
+    st.markdown('<div class="section-kicker">CONTACT</div>', unsafe_allow_html=True)
+    st.header("편하게 연락 주세요")
+    contact_column, guestbook_column = st.columns([0.85, 1.15], gap="large")
+    with contact_column:
+        st.markdown("#### 전화")
+        st.link_button("010-0000-0000 전화하기", "tel:01000000000", icon="📞")
+        st.caption("연락처를 누르면 기기의 전화 앱이 열립니다.")
+        contact_card = "BEGIN:VCARD\nVERSION:3.0\nFN:김요한\nTEL:010-0000-0000\nORG:서울공업고등학교\nTITLE:신재생에너지과 부장\nEND:VCARD\n"
+        st.download_button(
+            "연락처 저장",
+            data=contact_card,
+            file_name="김요한.vcf",
+            mime="text/vcard",
+            icon="📥",
+        )
+    with guestbook_column:
+        st.markdown("#### 방명록")
+        with st.form("guestbook_form", clear_on_submit=True):
+            visitor_name = st.text_input("이름", placeholder="이름을 입력해 주세요")
+            visitor_message = st.text_area("메시지", placeholder="인사나 응원의 말을 남겨주세요")
+            guestbook_submitted = st.form_submit_button("메시지 남기기", type="primary")
+
+        if "guestbook" not in st.session_state:
+            st.session_state.guestbook = []
+        if guestbook_submitted:
+            if visitor_name.strip() and visitor_message.strip():
+                st.session_state.guestbook.insert(
+                    0, {"name": visitor_name.strip(), "message": visitor_message.strip()}
+                )
+                st.toast("방명록에 메시지를 남겼습니다.", icon="✍️")
+            else:
+                st.warning("이름과 메시지를 모두 입력해 주세요.")
+
+        if st.session_state.guestbook:
+            for entry in st.session_state.guestbook[:3]:
+                st.markdown(f"**{entry['name']}**　{entry['message']}")
+        else:
+            st.caption("첫 인사를 남겨주세요. 방명록은 현재 세션에서만 유지됩니다.")
+
+st.divider()
+st.caption("김요한 · 서울공업고등학교 · 전기 및 신재생에너지 교육")
